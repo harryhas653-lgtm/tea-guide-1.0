@@ -7,8 +7,8 @@
 
 <style>
 :root{
-  --bg:#0e0f0f;
-  --card:#171818;
+  --bg:#0e0e0e;
+  --card:#171717;
   --text:#f2f2f2;
   --muted:#9a9a9a;
   --accent:#6bcf9b;
@@ -20,54 +20,52 @@ body{
   font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
   background:var(--bg);
   color:var(--text);
-  transition:background .4s,color .4s;
 }
 .container{max-width:720px;margin:0 auto}
-h1{font-weight:600;margin-bottom:4px}
+h1{margin-bottom:4px}
 .subtitle{color:var(--muted);margin-bottom:28px}
 
 .card{
-  background:linear-gradient(180deg,var(--card),rgba(0,0,0,.2));
+  background:linear-gradient(180deg,var(--card),rgba(0,0,0,.25));
   border-radius:20px;
   padding:22px;
   margin-bottom:22px;
-  transition:background .4s;
 }
-label{display:block;margin-bottom:8px;font-size:.95em;color:var(--muted)}
-select,input[type=range]{
+
+label{display:block;margin-bottom:8px;color:#ccc}
+select,input[type=range],button{
   width:100%;
-  padding:12px 14px;
-  border-radius:14px;
+  margin-bottom:14px;
   background:#0f0f0f;
   color:var(--text);
   border:1px solid rgba(255,255,255,.08);
-  margin-bottom:18px;
+  border-radius:12px;
+  padding:10px 12px;
 }
-.micro{font-size:.85em;color:var(--muted);margin-top:-10px;margin-bottom:16px}
 
-.result{font-size:1.15em;line-height:1.5}
-.state{margin-top:10px;font-style:italic;color:var(--muted)}
+.micro{font-size:.9em;color:var(--muted);margin-bottom:12px}
+.result{font-size:1.15em;margin-top:8px}
+.state{font-style:italic;color:#bbb;margin-top:10px}
 
 .progress{
   height:6px;
   background:#333;
   border-radius:6px;
   overflow:hidden;
-  margin-top:10px;
+  margin-top:8px;
 }
-.progress > div{
+.bar{
   height:100%;
   width:0%;
   background:var(--accent);
-  transition:width .4s linear;
+  transition:width .2s linear;
 }
-ul{padding-left:18px}
-li{margin-bottom:6px}
 </style>
 </head>
 
 <body>
 <div class="container">
+
 <h1>Чайний провідник</h1>
 <div class="subtitle">Він не вчить. Він налаштовує.</div>
 
@@ -84,7 +82,7 @@ li{margin-bottom:6px}
 <div class="micro">Обери лист — усе інше підлаштується</div>
 
 <label>Обʼєм (мл): <span id="volLabel">120</span></label>
-<input type="range" id="volume" min="60" max="300" step="10" value="120">
+<input type="range" id="volume" min="60" max="500" step="10" value="120">
 
 <label>Кількість листа</label>
 <input type="range" id="leaf" min="-1" max="1" step="1" value="0">
@@ -92,11 +90,121 @@ li{margin-bottom:6px}
 </div>
 
 <div class="card">
-<h3>Результат</h3>
+<h2>Результат</h2>
 <div class="result" id="result"></div>
 <div class="state" id="state"></div>
 </div>
 
+<div class="card" id="timerCard">
+<h2>Проливи</h2>
+<div id="pours"></div>
+<button id="start">Почати пролив</button>
+<div class="progress"><div class="bar" id="bar"></div></div>
+</div>
+
 <div class="card">
-<h3>Про цей чай</h3>
-<div id="facts" class="micro"><
+<h2>Про цей чай</h2>
+<div id="facts" class="micro">Опис буде додано поступово.</div>
+</div>
+
+</div>
+
+<script>
+const teas={
+  longjing:{
+    label:'🍃 龙井 Лунцзін',
+    gram:[3,4], temp:[80,85],
+    pours:[10,15,20,30,40],
+    about:{
+      taste:'Чистий, горіховий, сухий.',
+      state:'Збирає голову, спокій.'
+    }
+  },
+  biluochun:{
+    label:'🍃 碧螺春 Бі Ло Чунь',
+    gram:[3,4], temp:[75,80],
+    pours:[8,12,18,25,35],
+    about:{
+      taste:'Ароматний, квітковий.',
+      state:'Легке підняття.'
+    }
+  },
+  sheng:{
+    label:'🌑 生普洱 Шен Пуер',
+    gram:[6,7], temp:[95,100],
+    pours:[5,7,10,15,20],
+    about:{
+      taste:'Сухий, мінеральний.',
+      state:'Ясність, простір.'
+    }
+  },
+  shu:{
+    label:'🌑 熟普洱 Шу Пуер',
+    gram:[7,8], temp:[100,100],
+    pours:[10,12,15,20,30],
+    about:{
+      taste:'Густий, теплий.',
+      state:'Заземлення.'
+    }
+  }
+};
+
+const teaSel=document.getElementById('tea');
+const vol=document.getElementById('volume');
+const volLabel=document.getElementById('volLabel');
+const leaf=document.getElementById('leaf');
+const leafLabel=document.getElementById('leafLabel');
+const result=document.getElementById('result');
+const state=document.getElementById('state');
+const poursDiv=document.getElementById('pours');
+const bar=document.getElementById('bar');
+const startBtn=document.getElementById('start');
+
+Object.entries(teas).forEach(([k,t])=>{
+  const o=document.createElement('option');
+  o.value=k;o.textContent=t.label;
+  teaSel.appendChild(o);
+});
+
+function calc(){
+  const t=teas[teaSel.value];
+  const v=+vol.value;
+  volLabel.textContent=v;
+
+  let g=((v/120)*((t.gram[0]+t.gram[1])/2));
+  if(leaf.value==1) g*=1.15;
+  if(leaf.value==-1) g*=0.85;
+
+  leafLabel.textContent=leaf.value==1?'Більше':leaf.value==-1?'Менше':'Середня';
+
+  result.innerHTML=
+    `Чай: <b>${g.toFixed(1)} г</b><br>`+
+    `Вода: ${t.temp[0]}–${t.temp[1]}°C`;
+
+  poursDiv.innerHTML=t.pours.map((p,i)=>`<div>${i+1} → ${p} сек</div>`).join('');
+
+  document.getElementById('facts').innerHTML=
+    `<b>Смак:</b> ${t.about.taste}<br><b>Стан:</b> ${t.about.state}`;
+}
+
+let timer=null,elapsed=0,duration=0;
+startBtn.onclick=()=>{
+  const t=teas[teaSel.value];
+  duration=t.pours[0];
+  elapsed=0;
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    elapsed++;
+    bar.style.width=(elapsed/duration*100)+'%';
+    if(elapsed>=duration) clearInterval(timer);
+  },1000);
+};
+
+vol.oninput=calc;
+leaf.oninput=calc;
+teaSel.onchange=calc;
+calc();
+</script>
+
+</body>
+</html>
