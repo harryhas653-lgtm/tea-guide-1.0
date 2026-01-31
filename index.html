@@ -7,54 +7,72 @@
 
 <style>
 :root{
-  --bg:#121212;
-  --card:#1c1c1c;
-  --text:#f3f3f3;
+  --bg:#0e0f0f;
+  --card:#171818;
+  --text:#f2f2f2;
   --muted:#9a9a9a;
   --accent:#6bcf9b;
 }
-
+*{box-sizing:border-box}
 body{
   margin:0;
-  padding:24px;
+  padding:32px 16px;
   font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
   background:var(--bg);
   color:var(--text);
+  transition:background .4s,color .4s;
 }
-
 .container{max-width:720px;margin:0 auto}
-.card{
-  background:var(--card);
-  border-radius:16px;
-  padding:20px;
-  margin-bottom:20px;
-}
+h1{font-weight:600;margin-bottom:4px}
+.subtitle{color:var(--muted);margin-bottom:28px}
 
-h1{margin-top:0}
-label{display:block;margin-bottom:6px}
+.card{
+  background:linear-gradient(180deg,var(--card),rgba(0,0,0,.2));
+  border-radius:20px;
+  padding:22px;
+  margin-bottom:22px;
+  transition:background .4s;
+}
+label{display:block;margin-bottom:8px;font-size:.95em;color:var(--muted)}
 select,input[type=range]{
   width:100%;
-  margin-bottom:12px;
-  padding:10px;
-  background:#111;
+  padding:12px 14px;
+  border-radius:14px;
+  background:#0f0f0f;
   color:var(--text);
-  border-radius:10px;
-  border:1px solid #333;
+  border:1px solid rgba(255,255,255,.08);
+  margin-bottom:18px;
 }
+.micro{font-size:.85em;color:var(--muted);margin-top:-10px;margin-bottom:16px}
 
-.micro{font-size:.9em;color:var(--muted)}
-.result{font-size:1.1em;margin-top:10px}
+.result{font-size:1.15em;line-height:1.5}
+.state{margin-top:10px;font-style:italic;color:var(--muted)}
+
+.progress{
+  height:6px;
+  background:#333;
+  border-radius:6px;
+  overflow:hidden;
+  margin-top:10px;
+}
+.progress > div{
+  height:100%;
+  width:0%;
+  background:var(--accent);
+  transition:width .4s linear;
+}
+ul{padding-left:18px}
+li{margin-bottom:6px}
 </style>
 </head>
 
 <body>
 <div class="container">
-
 <h1>Чайний провідник</h1>
-<p class="micro">Він не вчить. Він налаштовує.</p>
+<div class="subtitle">Він не вчить. Він налаштовує.</div>
 
 <div class="card">
-<label>Метод заварювання</label>
+<label>Метод приготування</label>
 <select id="method">
   <option value="gongfu">Проливи (гунфу)</option>
   <option value="steep">Настоювання</option>
@@ -63,6 +81,7 @@ select,input[type=range]{
 
 <label>Тип чаю</label>
 <select id="tea"></select>
+<div class="micro">Обери лист — усе інше підлаштується</div>
 
 <label>Обʼєм (мл): <span id="volLabel">120</span></label>
 <input type="range" id="volume" min="60" max="300" step="10" value="120">
@@ -73,42 +92,11 @@ select,input[type=range]{
 </div>
 
 <div class="card">
-<h2>Результат</h2>
+<h3>Результат</h3>
 <div class="result" id="result"></div>
+<div class="state" id="state"></div>
 </div>
 
-</div>
-
-<script>
-const teas={
- longjing:{name:'🍃 龙井 Лунцзін'},
- biluochun:{name:'🍃 碧螺春 Бі Ло Чунь'},
- yinzheng:{name:'🌱 白毫银针 Бай Хао Інь Чжень'},
- sheng:{name:'🌑 生普洱 Шен Пуер'},
- shu:{name:'🌑 熟普洱 Шу Пуер'}
-};
-
-const teaSelect=document.getElementById('tea');
-const volume=document.getElementById('volume');
-const leaf=document.getElementById('leaf');
-const result=document.getElementById('result');
-const volLabel=document.getElementById('volLabel');
-const leafLabel=document.getElementById('leafLabel');
-const method=document.getElementById('method');
-
-function initTeas(){
- teaSelect.innerHTML='';
- Object.values(teas).forEach(t=>{
-  const o=document.createElement('option');
-  o.textContent=t.name;
-  teaSelect.appendChild(o);
- });
-}
-
-function calculate(){
- const vol=volume.value;
- const base=vol/100*3;
- const gram=leaf.value==1?base*1.15:leaf.value==-1?base*0.85:base;
-
- result.innerHTML=
-  `Лист: <b
+<div class="card">
+<h3>Про цей чай</h3>
+<div id="facts" class="micro"><
