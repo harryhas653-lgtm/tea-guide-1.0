@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <title>Чайний провідник</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:#0f0f0f;color:#f5f5f5;margin:0;padding:24px}
+    .container{max-width:700px;margin:0 auto}
+    h1,h2{font-weight:500}
+    .card{background:#1a1a1a;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+    label{display:block;margin-bottom:8px;opacity:.85}
+    select,input[type=range],button{width:100%;margin-bottom:12px}
+    .micro{font-size:.9em;opacity:.7;margin-bottom:12px}
+    .result{font-size:1.2em;margin-top:10px}
+    .state{margin-top:12px;font-style:italic;opacity:.8}
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Чайний провідник</h1>
+  <p class="micro">Він не вчить. Він налаштовує.</p>
+
+  <div class="card">
+    <label>Спосіб заварювання</label>
+    <select id="method">
+      <option value="gongfu">Проливами (Пін Ча)</option>
+      <option value="steep">Настоювання</option>
+    </select>
+
+    <label>Тип чаю</label>
+    <select id="tea"></select>
+    <div class="micro">Оберіть лист — далі все підлаштується.</div>
+
+    <div id="ageBlock" style="display:none">
+      <label>Рік чаю: <span id="ageLabel">2015</span></label>
+      <input type="range" id="teaAge" min="1940" max="2026" value="2015" />
+      <div class="micro">Молодший — різкіший. Старший — глибший.</div>
+    </div>
+
+    <label>Обʼєм посуду (мл): <span id="volLabel">120</span></label>
+    <input type="range" id="volume" min="60" max="500" step="10" value="120" />
+
+    <label>Насиченість</label>
+    <select id="strength">
+      <option value="light">Легка</option>
+      <option value="medium" selected>Середня</option>
+      <option value="strong">Щільна</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <h2>Результат</h2>
+    <div class="result" id="result"></div>
+    <div class="state" id="state"></div>
+    <button id="startTimer">Почати пролив</button>
+    <div class="micro" id="timerText"></div>
+  </div>
+
+  <div class="card">
+    <h2>Про цей чай</h2>
+    <div id="facts"></div>
+  </div>
+</div>
+
+<script>
+// ---------- DATA ----------
+const teaProfiles={
+  longjing:{label:'🍃 龙井 Лунцзін',cat:'green',temp:[75,80],facts:{effect:['ясна голова','рівна концентрація'],note:['чай інтелектуалів']}},
+  biluochun:{label:'🍃 碧螺春 Бі Ло Чунь',cat:'green',temp:[75,80],facts:{effect:['швидке пробудження'],note:['дуже ароматний']}},
+  huangshan:{label:'🍃 黄山毛峰 Хуаншань Маофен',cat:'green',temp:[75,80],facts:{effect:['баланс'],note:['на щодень']}},
+  taiping:{label:'🍃 太平猴魁 Тайпін Хоукуй',cat:'green',temp:[80,85],facts:{effect:['глибока концентрація'],note:['чай мовчання']}},
+
+  yinzheng:{label:'🌱 白毫银针 Бай Хао Інь Чжень',cat:'white',temp:[80,85],facts:{effect:['глибокий спокій'],note:['чай тиші']}},
+  mudan:{label:'🌱 白牡丹 Бай Мудань',cat:'white',temp:[80,85],facts:{effect:['емоційна рівновага'],note:['вечірній']}},
+  shoumei:{label:'🌱 寿眉 Шоу Мей',cat:'white',temp:[85,90],facts:{effect:['заземлення'],note:['добре старіє']}},
+
+  junshan:{label:'🌼 君山银针 Цзюньшань Інь Чжень',cat:'yellow',temp:[80,85],facts:{effect:['рівний стан'],note:['імператорський']}},
+  mengding:{label:'🌼 蒙顶黄芽 Мендин Хуан Я',cat:'yellow',temp:[80,85],facts:{effect:['гармонія'],note:['монаший']}},
+
+  tieguanyin:{label:'🐉 铁观音 Те Гуань Інь',cat:'oolong_light',temp:[90,95],facts:{effect:['соціальна мʼякість'],note:['чай серця']}},
+  dahongpao:{label:'🐉 大红袍 Да Хун Пао',cat:'oolong_dark',temp:[95,100],facts:{effect:['сила','фокус'],note:['скельний чай']}},
+  shuixian:{label:'🐉 水仙 Шуй Сянь',cat:'oolong_dark',temp:[95,100],facts:{effect:['стабільність'],note:['без піків']}},
+  rougui:{label:'🐉 肉桂 Жоу Гуй',cat:'oolong_dark',temp:[95,100],facts:{effect:['тепло','тонус'],note:['чай дії']}},
+  dancong:{label:'🐉 凤凰单丛 Фенікс Дань Цун',cat:'oolong_light',temp:[90,95],facts:{effect:['креатив'],note:['яскравий характер']}},
+
+  qimen:{label:'🔴 祁门红茶 Цімень Хун Ча',cat:'red',temp:[90,95],facts:{effect:['мʼяка енергія'],note:['заміна каві']}},
+  dianhong:{label:'🔴 滇红 Дянь Хун',cat:'red',temp:[90,95],facts:{effect:['тілесна сила'],note:['ранковий']}},
+  lapsang:{label:'🔴 正山小种 Чженшань Сяочжун',cat:'red',temp:[95,100],facts:{effect:['заземлення'],note:['копчений']}},
+
+  sheng:{label:'🌑 生普洱 Шен Пуер',cat:'puer_sheng',aging:true,facts:{effect:['ясність','очищення'],note:['може вдарити']},tempByAge:a=>a<2005?[95,98]:a<2015?[90,95]:[85,90],gramByAge:a=>a>2015?0.9:a<2005?1.05:1},
+  shu:{label:'🌑 熟普洱 Шу Пуер',cat:'puer_shu',aging:true,facts:{effect:['заземлення','тепло'],note:['вечірній']},tempByAge:a=>a<2000?[98,100]:a<2015?[95,98]:[95,95],gramByAge:a=>a<2000?1.05:a>2015?0.95:1}
+};
+
+// ---------- ELEMENTS ----------
+const teaSelect=document.getElementById('tea');
+const ageBlock=document.getElementById('ageBlock');
+const ageInput=document.getElementById('teaAge');
+const ageLabel=document.getElementById('ageLabel');
+const volumeInput=document.getElementById('volume');
+const volLabel=document.getElementById('volLabel');
+const resultEl=document.getElementById('result');
+const stateEl=document.getElementById('state');
+const timerText=document.getElementById('timerText');
+const startBtn=document.getElementById('startTimer');
+
+// ---------- INIT TEA LIST ----------
+function populateTea(){
+  teaSelect.innerHTML='';
+  const groups={
+    green:'🍃 Зелений чай',white:'🌱 Білий чай',yellow:'🌼 Жовтий чай',
+    oolong_light:'🐉 Улун (світлий)',oolong_dark:'🐉 Улун (темний)',
+    red:'🔴 Червоний чай',puer_sheng:'🌑 Шен Пуер',puer_shu:'🌑 Шу Пуер'
+  };
+  Object.entries(groups).forEach(([cat,label])=>{
+    const items=Object.entries(teaProfiles).filter(([_,t])=>t.cat===cat);
+    if(!items.length) return;
+    const og=document.createElement('optgroup'); og.label=label;
+    items.forEach(([k,t])=>{const o=document.createElement('option');o.value=k;o.textContent=t.label;og.appendChild(o);});
+    teaSelect.appendChild(og);
+  });
+}
+
+// ---------- CALC ----------
+function calculate(){
+  const key=teaSelect.value;
+  const t=teaProfiles[key]; if(!t) return;
+
+  let grams=volumeInput.value/18;
+  let temp=t.temp;
+  let pour=8;
+
+  if(t.aging){
+    ageBlock.style.display='block';
+    ageLabel.textContent=ageInput.value;
+    const a=+ageInput.value;
+    grams*=t.gramByAge(a);
+    temp=t.tempByAge(a);
+    pour=a>2015?5:a>2005?7:10;
+  } else ageBlock.style.display='none';
+
+  resultEl.innerHTML=`Чай: <strong>${grams.toFixed(1)} г</strong><br>Вода: <strong>${temp[0]}–${temp[1]}°C</strong><br>Початковий пролив: <strong>${pour} с</strong>`;
+  stateEl.textContent=t.aging?'Вік тут має значення.':'Смак формується.';
+  document.getElementById('facts').innerHTML=`<strong>Ефект:</strong><ul>${t.facts.effect.map(e=>`<li>${e}</li>`).join('')}</ul><strong>Цікаве:</strong><ul>${t.facts.note.map(n=>`<li>${n}</li>`).join('')}</ul>`;
+
+  startBtn.onclick=()=>startTimer(pour);
+}
+
+// ---------- TIMER ----------
+let timer=null;
+function startTimer(sec){
+  if(timer) clearInterval(timer);
+  let s=sec;
+  timerText.textContent='Почалося. Увага.';
+  timer=setInterval(()=>{
+    s--;
+    if(s>sec/2) timerText.textContent='Смак формується.';
+    else if(s>1) timerText.textContent='Ще мить.';
+    else if(s<=0){ timerText.textContent='Зливайте.'; clearInterval(timer); }
+  },1000);
+}
+
+// ---------- EVENTS ----------
+volumeInput.oninput=()=>{volLabel.textContent=volumeInput.value;calculate();};
+ageInput.oninput=calculate;
+teaSelect.onchange=calculate;
+
+populateTea();
+calculate();
+</script>
+</body>
+</html>
